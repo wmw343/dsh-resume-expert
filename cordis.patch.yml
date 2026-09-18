@@ -1,0 +1,5 @@
+# dsh-resume-expert bundle patch
+# dsh plugin add 会把本包追加进 bundle 栈，profile boot 合并此 patch（插入插件行）
+- insert:
+    - id: resume-expert
+      name: "dsh-resume-expert"

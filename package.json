@@ -4,7 +4,9 @@
   "private": true,
   "description": "简历专家插件 × DeepSeek Harness 适配层（Phase 1：工具化接入）",
   "dsh": {
-    "host": "./lib/index.js"
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
@@ -15,5 +17,6 @@
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
   },
-  "type": "module"
+  "type": "module",
+  "main": "./lib/index.js"
 }
