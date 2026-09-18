@@ -1,0 +1,19 @@
+{
+  "name": "dsh-resume-expert",
+  "version": "1.0.0",
+  "private": true,
+  "description": "简历专家插件 × DeepSeek Harness 适配层（Phase 1：工具化接入）",
+  "dsh": {
+    "host": "./lib/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-tools": "^0.0.1-rc.1",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "type": "module"
+}

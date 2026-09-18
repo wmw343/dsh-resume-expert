@@ -1,0 +1,183 @@
+{
+    "id": "resume-expert",
+    "name": "简历专家",
+    "version": "0.2.0",
+    "hostApi": "^1.0.0",
+    "entry": "./src/index.ts",
+    "description": "引导式简历生成插件：从零散信息出发，先出文字稿，再逐步补全，最终产出可投递的 PDF 简历。",
+    "permissions": ["llm", "auth", "storage", "telemetry", "config", "render"],
+    "optionalPermissions": ["render"],
+    "capabilities": [
+        {
+            "id": "intake",
+            "title": "首轮诊断与文字稿",
+            "description": "用户只给出一句模糊需求、或直接贴来一份完整简历时，判断目标岗位与用户类型，给出针对性反馈，整理出第一版结构化草稿与待补充清单。",
+            "inputSchema": {
+                "type": "object",
+                "required": ["raw"],
+                "properties": {
+                    "raw": { "type": "string", "description": "用户的原始描述，可以很模糊，也可以是完整简历" },
+                    "sessionId": { "type": "string" }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "sessionId": { "type": "string" },
+                    "reply": { "type": "string" },
+                    "markdown": { "type": "string", "description": "文字稿，由插件本地从 facts 渲染" },
+                    "completeness": { "type": "number" },
+                    "missing": { "type": "array" },
+                    "nextQuestion": { "type": "string" },
+                    "stage": { "type": "string" }
+                }
+            },
+            "permissions": ["llm", "storage", "telemetry"]
+        },
+        {
+            "id": "refine",
+            "title": "迭代补全",
+            "description": "接收用户对本轮问题的回答，合并进已有事实，更新文字稿与待补充清单，并给出下一个问题。",
+            "inputSchema": {
+                "type": "object",
+                "required": ["sessionId", "answer"],
+                "properties": {
+                    "sessionId": { "type": "string" },
+                    "answer": { "type": "string" }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "reply": { "type": "string" },
+                    "markdown": { "type": "string" },
+                    "completeness": { "type": "number" },
+                    "missing": { "type": "array" },
+                    "nextQuestion": { "type": "string" },
+                    "stage": { "type": "string" }
+                }
+            },
+            "permissions": ["llm", "storage", "telemetry"]
+        },
+        {
+            "id": "compose",
+            "title": "成稿",
+            "description": "文字描述基本完善后，整合为一份结构完整、可直接投递的简历定稿。",
+            "inputSchema": {
+                "type": "object",
+                "required": ["sessionId"],
+                "properties": { "sessionId": { "type": "string" } }
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "markdown": { "type": "string" },
+                    "stage": { "type": "string" }
+                }
+            },
+            "permissions": ["llm", "storage", "telemetry"]
+        },
+        {
+            "id": "tailor",
+            "title": "按 JD 定制",
+            "description": "把简历按目标岗位 JD 重写：提取关键词、STAR 化、量化成果、技能重排序。传 sessionId 时会直接改写该会话（界面走这条路）；不传则退化成无状态的纯改写。",
+            "inputSchema": {
+                "type": "object",
+                "required": ["jd"],
+                "properties": {
+                    "jd": { "type": "string" },
+                    "resume": { "type": "string", "description": "要改写的文字稿。传了 sessionId 时可省略" },
+                    "facts": { "type": "object", "description": "结构化事实，可选，给了改写更准" },
+                    "sessionId": { "type": "string", "description": "传了就把结果写回该会话" }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "offTopic": { "type": "boolean" },
+                    "markdown": { "type": "string" },
+                    "facts": { "type": "object", "description": "结构化结果，导出 PDF 靠它" },
+                    "reply": { "type": "string" }
+                }
+            },
+            "permissions": ["llm", "storage", "telemetry"]
+        },
+        {
+            "id": "set-photo",
+            "title": "设置证件照",
+            "description": "任意时间点上传 / 替换 / 移除证件照。照片随会话状态持久化，刷新不丢。传空字符串表示移除。",
+            "inputSchema": {
+                "type": "object",
+                "required": ["sessionId", "photo"],
+                "properties": {
+                    "sessionId": { "type": "string" },
+                    "photo": {
+                        "type": "string",
+                        "description": "png/jpg/webp 的 data URL；传空字符串表示移除照片"
+                    }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "hasPhoto": { "type": "boolean" },
+                    "stage": { "type": "string" }
+                }
+            },
+            "permissions": ["storage", "telemetry"]
+        },
+        {
+            "id": "export",
+            "title": "导出 PDF",
+            "description": "按指定字体与密度排版，可由宿主 render 服务直出 PDF 文件供下载；宿主未提供 render 时降级为返回打印优化 HTML。可选单页自适应。",
+            "inputSchema": {
+                "type": "object",
+                "required": ["sessionId"],
+                "properties": {
+                    "sessionId": { "type": "string" },
+                    "photo": { "type": "string", "description": "可选，data URL 格式的证件照" },
+                    "format": { "type": "string", "enum": ["html", "pdf"], "description": "缺省时：宿主有 render 就用 pdf" },
+                    "style": {
+                        "type": "object",
+                        "description": "排版样式，只传要改的字段",
+                        "properties": {
+                            "font": { "type": "string", "enum": ["sans", "serif"] },
+                            "density": { "type": "string", "enum": ["loose", "normal", "compact"] },
+                            "photoShape": { "type": "string", "enum": ["square", "round"] },
+                            "accent": { "type": "string", "description": "#rgb 或 #rrggbb" }
+                        }
+                    },
+                    "fitSinglePage": { "type": "boolean", "description": "尽量压到一页，会逐档收紧密度重渲染" }
+                }
+            },
+            "outputSchema": {
+                "type": "object",
+                "properties": {
+                    "html": { "type": "string" },
+                    "hasPhoto": { "type": "boolean" },
+                    "format": { "type": "string" },
+                    "style": { "type": "object" },
+                    "pdf": {
+                        "type": "object",
+                        "properties": {
+                            "base64": { "type": "string" },
+                            "pages": { "type": "number" }
+                        }
+                    },
+                    "pdfUnavailableReason": { "type": "string" }
+                }
+            },
+            "permissions": ["storage", "telemetry", "render"]
+        }
+    ],
+    "widgets": [
+        {
+            "id": "resume-expert.main",
+            "title": "简历专家",
+            "entry": "./src/widgets/main.ts",
+            "size": "panel",
+            "preload": false,
+            "permissions": ["llm", "auth", "storage", "telemetry", "render"]
+        }
+    ]
+}
