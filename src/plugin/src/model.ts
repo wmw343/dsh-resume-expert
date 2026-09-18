@@ -434,7 +434,7 @@ function mergeByKey<T>(
     if (!k) continue;
     const existing = index.get(k);
     if (existing) {
-      for (const [field, value] of Object.entries(item)) {
+      for (const [field, value] of Object.entries(item as Record<string, unknown>)) {
         if (value === undefined || value === null) continue;
         if (Array.isArray(value) && value.length === 0) continue;
         if (typeof value === "string" && !value.trim()) continue;
