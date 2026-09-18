@@ -2,8 +2,11 @@
  * 简历专家 × DSH 适配层：把插件的 HostServices 契约落在 DSH 环境上。
  * 密钥/厂商/重试全部在这一层（宿主侧）；plugin/ 保持零改动。
  */
+import os from "node:os";
+import path from "node:path";
 import { createRealLlm } from "./plugin-llm.ts";
 import { createRenderService } from "./render.ts";
+import { createFileKv } from "./store.ts";
 import type { HostServices, CallContext } from "./plugin/src/contract/host.ts";
 
 export function buildHostServices(): HostServices {
@@ -16,25 +19,12 @@ export function buildHostServices(): HostServices {
     error: (m: string, ...a: unknown[]) => console.error(`[resume-expert] ${m}`, ...a),
   };
 
-  // —— 内存 KV（与 demo 宿主同款；TTL 到期惰性清除）——
-  const store = new Map<string, { value: unknown; expiresAt: number }>();
-  const storage = {
-    async get<T>(key: string): Promise<T | null> {
-      const hit = store.get(key);
-      if (!hit) return null;
-      if (hit.expiresAt && Date.now() > hit.expiresAt) {
-        store.delete(key);
-        return null;
-      }
-      return hit.value as T;
-    },
-    async set<T>(key: string, value: T, ttlMs?: number): Promise<void> {
-      store.set(key, { value, expiresAt: ttlMs ? Date.now() + ttlMs : 0 });
-    },
-    async remove(key: string): Promise<void> {
-      store.delete(key);
-    },
-  };
+  // —— 文件型 KV：重启 dsh web 后会话不丢（详见 store.ts 的决策留痕）——
+  // 默认落在 DSH 主目录（~/.dsh），可用 RESUME_EXPERT_STORE 覆盖路径。
+  const dshHome = process.env.DSH_HOME || path.join(os.homedir(), ".dsh");
+  const storeFile = process.env.RESUME_EXPERT_STORE || path.join(dshHome, "resume-expert-store.json");
+  const storage = createFileKv(storeFile);
+  logger.info(`会话持久化：${storeFile}`);
 
   return {
     hostVersion: "1.0.0",

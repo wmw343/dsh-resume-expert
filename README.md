@@ -21,6 +21,8 @@ Add-Content "$env:USERPROFILE\.dsh\.env" "DEEPSEEK_API_KEY=sk-你的Key"
 
 启动 `dsh web`，在会话里直接说 **"帮我做一份简历，我是××专业应届生，会××和××"**。
 
+会话默认持久化到 `~/.dsh/resume-expert-store.json`——重启 `dsh web` 不丢草稿；可用环境变量 `RESUME_EXPERT_STORE` 指定存储路径。
+
 ## 工作方式
 
 用户在对话里自然表达，Agent 自主调用 6 个工具完成四阶段：
