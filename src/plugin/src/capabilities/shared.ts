@@ -1,5 +1,6 @@
 import type { ChatMessage, HostServices, CallContext } from "../contract/host.ts";
-import { PluginError, toPluginError } from "../contract/errors.ts";
+import { PluginError, ERROR_SPECS, toPluginError } from "../contract/errors.ts";
+import type { PluginErrorCode } from "../contract/errors.ts";
 import { extractJson } from "../prompts/common.ts";
 import {
   deriveMissing,
@@ -172,14 +173,64 @@ export interface LlmJsonResult {
   nextQuestion: string;
 }
 
+/** 从任意错误对象上读合法 code（**不依赖 instanceof**：跨模块、跨序列化边界时不共享类身份） */
+function readErrorCode(e: unknown): PluginErrorCode | null {
+  const c = (e as { code?: unknown })?.code;
+  return typeof c === "string" && c in ERROR_SPECS ? (c as PluginErrorCode) : null;
+}
+
+/**
+ * 生成附加说明，但**不重复 spec 里的固定话术**。
+ *
+ * 宿主抛 `PluginError` 时，它的 message 已经是「固定话术（细节）」；
+ * 整条再当 detail 传进去会变成「固定话术（固定话术（细节））」。
+ * 所以先剥掉固定话术前缀与包裹的括号。
+ */
+function detailWithoutSpec(e: unknown, code: PluginErrorCode): string | undefined {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (!msg) return undefined;
+  const spec = ERROR_SPECS[code].message;
+  const rest = msg.startsWith(spec) ? msg.slice(spec.length) : msg;
+  const cleaned = rest
+    .replace(/^[（(]\s*/, "")
+    .replace(/\s*[）)]\s*$/, "")
+    .trim();
+  return cleaned || undefined;
+}
+
+/**
+ * 把宿主抛出的错误映射成插件错误码。
+ *
+ * **优先读结构化 code，正则只做兜底。**
+ *
+ * 契约的方向是「插件只抛错误码，宿主读到 code 后自行决定文案」（见 `contract/errors.ts`
+ * 文件头），所以宿主抛错时**应该**带上 code。若只认文案，接入方把
+ * 「模型服务认证失败（HTTP 401）」改写成「`401 Unauthorized`」（HTTP 标准措辞），
+ * `E_LLM_AUTH` 就退化成 `E_UNKNOWN`——「用户一眼判断该不该换 key」这个承诺随之失效。
+ * 而错误码体系正是给接入方看的那份契约的核心。
+ *
+ * **正则兜底必须保留**：老宿主（含本仓库参考宿主改造前）抛的是裸 Error，无 code 可读。
+ * 砍掉兜底会把「可能误分类」变成「必然 E_UNKNOWN」，比现状更差。
+ *
+ * @see docs/改进项清单.md 的 B2
+ */
 export function mapLlmError(e: unknown): PluginError {
   if (e instanceof PluginError) return e;
+
+  // ① 结构化：任何带合法 code 的错误对象
+  const code = readErrorCode(e);
+  if (code) return new PluginError(code, detailWithoutSpec(e, code));
+
+  // ② 文案兜底（老宿主 / 第三方宿主可能只抛裸 Error）
   const msg = e instanceof Error ? e.message : String(e);
   if (/abort|timeout|超时/i.test(msg)) return new PluginError("E_LLM_TIMEOUT", msg);
   if (/429|限流/.test(msg)) return new PluginError("E_LLM_BUSY", msg);
   // 401/403（key 无效/过期/未开通）——必须在「未知错误」兜底之前认出来，
-  // 否则用户永远无法从报错判断「是不是该换 key」
-  if (/认证失败|API Key/i.test(msg)) return new PluginError("E_LLM_AUTH", msg);
+  // 否则用户永远无法从报错判断「是不是该换 key」。
+  // 额外认 `401/403` 与 Unauthorized/Forbidden：接入方若用 HTTP 标准英文措辞，不认这两个词就会漏。
+  if (/\b(401|403)\b|认证失败|API Key|Unauthorized|Forbidden/i.test(msg)) {
+    return new PluginError("E_LLM_AUTH", msg);
+  }
   // 连接层失败：Node 的 fetch 会统一抛出 "fetch failed"，具体原因在 cause 里
   if (/fetch failed|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|network/i.test(msg)) {
     const cause = (e as { cause?: { code?: string; message?: string } })?.cause;

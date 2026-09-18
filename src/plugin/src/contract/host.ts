@@ -10,6 +10,32 @@
  * 也才能被任意一家大厂的工作台内置。
  */
 
+/**
+ * 宿主抛错时的约定（重要）。
+ *
+ * 宿主服务失败时，**建议抛一个带 `code` 的错误**，`code` 取 `PluginErrorCode`
+ * （见 `contract/errors.ts`）。插件会**优先读 `code`**，读不到才按文案兜底。
+ *
+ * 为什么这么定：契约的方向是「插件抛错误码，宿主决定文案」，所以插件不该反过来
+ * 依赖宿主**怎么写文案**。若宿主只抛裸 Error，插件只能靠字符串猜——
+ * 那么接入方把「模型服务认证失败（HTTP 401）」改写成「401 Unauthorized」，
+ * `E_LLM_AUTH` 就会退化成 `E_UNKNOWN`，用户再也无法判断"该不该换 key"。
+ *
+ * 两种写法插件都支持（向后兼容）：
+ *
+ * ```ts
+ * // 推荐：结构化 —— 换任何文案都不影响分类
+ * import { PluginError } from "@scope/resume-expert";
+ * throw new PluginError("E_LLM_AUTH", `HTTP ${resp.status}`);
+ *
+ * // 兼容：裸 Error —— 插件按关键词兜底（不保证准确）
+ * throw new Error(`模型服务认证失败（HTTP ${resp.status}）`);
+ * ```
+ *
+ * `code` 只要求是「对象上一个值为字符串的 `code` 字段」，**不要求是同一个类实例**
+ * ——插件用结构化读取（而非 `instanceof`），因此跨模块、跨 iframe / Worker 边界都成立。
+ */
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;

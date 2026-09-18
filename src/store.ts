@@ -34,7 +34,27 @@ export interface KvStore {
   flush(): void;
 }
 
+/**
+ * 同一路径只允许一个实例 —— 这不是「省内存」，是**防止静默丢数据**：
+ *
+ * cordis 的 patch 支持热重载（profile 里配了 `patchReload: "live"`），
+ * 插件可能被重新 `apply()`，于是同一个文件上出现两个内存 Map，
+ * 而它们**各自注册了 process exit 钩子**。先创建的那个实例持有的是旧快照，
+ * 进程退出时它会把旧快照写回磁盘，**覆盖掉新实例刚写入的数据**。
+ * 复用实例可以根除这个窗口（也顺带避免重复注册 exit 监听）。
+ */
+const instances = new Map<string, KvStore>();
+
 export function createFileKv(filePath: string, opts?: { debounceMs?: number }): KvStore {
+  const key = path.resolve(filePath);
+  const cached = instances.get(key);
+  if (cached) return cached;
+  const store = createKv(key, opts);
+  instances.set(key, store);
+  return store;
+}
+
+function createKv(filePath: string, opts?: { debounceMs?: number }): KvStore {
   const debounceMs = opts?.debounceMs ?? 400;
   mkdirSync(path.dirname(filePath), { recursive: true });
 
