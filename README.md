@@ -9,7 +9,7 @@
 需要 DeepSeek Harness ≥ 0.1.5 与 Node.js ≥ 22。
 
 ```bash
-dsh plugin --profile web add github:<你的用户名>/dsh-resume-expert
+dsh plugin --profile web add github:wmw343/dsh-resume-expert
 ```
 
 设置环境变量 `DEEPSEEK_API_KEY`（模型调用由插件适配层直连 DeepSeek API，密钥不出宿主环境）：
