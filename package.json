@@ -1,12 +1,21 @@
 {
   "name": "dsh-resume-expert",
-  "version": "1.0.0",
-  "private": true,
-  "description": "简历专家插件 × DeepSeek Harness 适配层（Phase 1：工具化接入）",
+  "version": "1.0.1",
+  "description": "引导式简历生成插件：对话式四阶段 + A4 PDF 直出，双宿主验证",
+  "license": "MIT",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "compatibility": {
+      "dsh": ">=0.1.5",
+      "profiles": [
+        "web"
+      ]
     }
+  },
+  "engines": {
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
