@@ -52,6 +52,20 @@ Add-Content "$env:USERPROFILE\.dsh\.env" "DEEPSEEK_API_KEY=sk-你的Key"
 
 会话默认持久化到 `~/.dsh/resume-expert-store.json`——重启 `dsh web` 不丢草稿；可用环境变量 `RESUME_EXPERT_STORE` 指定存储路径。
 
+## 卸载
+
+```bash
+dsh plugin --profile web remove dsh-resume-expert
+```
+
+会话数据不会被自动清除。如需一并删除，手动删掉存储文件：
+
+```powershell
+Remove-Item "$env:USERPROFILE\.dsh\resume-expert-store.json"
+```
+
+（若你用过 `RESUME_EXPERT_STORE` 自定义路径，删那个路径下的文件即可。）
+
 ## 工作方式
 
 用户在对话里自然表达，Agent 自主调用 6 个工具完成四阶段：

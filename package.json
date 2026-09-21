@@ -17,6 +17,11 @@
   "engines": {
     "node": ">=22"
   },
+  "files": [
+    "lib/",
+    "!lib/plugin/test/",
+    "cordis.patch.yml"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node tests/store.test.mjs"
