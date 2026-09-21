@@ -4,6 +4,31 @@
 
 已在两个宿主实跑验证：自研 Demo 宿主 + **DeepSeek Harness 0.1.5**。471 项自动化验收。
 
+## 效果预览
+
+<table>
+<tr>
+<td width="50%">
+<img src="docs/screenshots/01-intake.png" alt="首轮诊断：建档与待补清单"/>
+<br><sub><b>① 首轮诊断</b>——一句模糊需求，返回第一版文字稿、完整度评估与待补充清单</sub>
+</td>
+<td width="50%">
+<img src="docs/screenshots/02-refine.png" alt="多轮补全与追问"/>
+<br><sub><b>② 多轮补全</b>——吸收补充信息，关键信息主动追问（学制 / 实习 or 校招口径）</sub>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="docs/screenshots/03-export.png" alt="成稿与导出"/>
+<br><sub><b>③ 成稿导出</b>——定稿落盘，并逐条说明"这版简历是怎么写出来的"</sub>
+</td>
+<td width="50%">
+<img src="docs/screenshots/04-a4-pdf.png" alt="单页 A4 PDF"/>
+<br><sub><b>④ 单页 A4 PDF</b>——真实排版直出，可直接投递</sub>
+</td>
+</tr>
+</table>
+
 ## 安装
 
 需要 DeepSeek Harness ≥ 0.1.5 与 Node.js ≥ 22。
