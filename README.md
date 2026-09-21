@@ -34,6 +34,10 @@
 需要 DeepSeek Harness ≥ 0.1.5 与 Node.js ≥ 22。
 
 ```bash
+# 推荐：固定版本，结果可复现
+dsh plugin --profile web add github:wmw343/dsh-resume-expert#v1.0.1
+
+# 或：跟随 main 最新提交
 dsh plugin --profile web add github:wmw343/dsh-resume-expert
 ```
 
