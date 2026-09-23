@@ -1,5 +1,7 @@
 # dsh-resume-expert · 简历专家插件（DSH 版）
 
+[![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/wmw343/dsh-resume-expert)
+
 引导式简历生成插件：用户说一句"帮我做份简历"，插件先诊断、再一轮一轮引导补齐，最终产出**可直接投递的单页 A4 PDF**。
 
 已在两个宿主实跑验证：自研 Demo 宿主 + **DeepSeek Harness 0.1.5**。471 项自动化验收。
